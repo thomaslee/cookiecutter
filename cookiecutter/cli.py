@@ -34,6 +34,15 @@ def print_version(context, param, value):
     context.exit()
 
 
+def expand_extra_context(options):
+    result = {}
+    if options:
+        for key_value in options:
+            key, value = key_value.split("=", 1)
+            result[key] = value
+    return result
+
+
 @click.command()
 @click.argument('template')
 @click.option(
@@ -54,7 +63,10 @@ def print_version(context, param, value):
     '-v', '--verbose',
     is_flag=True, help='Print debug information', default=False
 )
-def main(template, no_input, checkout, verbose):
+@click.option(
+    '-s', '--set-var',
+    help='Set or override a template variable (var=value).', multiple=True)
+def main(template, no_input, checkout, verbose, set_var):
     """Create a project from a Cookiecutter project template (TEMPLATE)."""
     if verbose:
         logging.basicConfig(
@@ -68,8 +80,10 @@ def main(template, no_input, checkout, verbose):
             level=logging.INFO
         )
 
+    extra_context = expand_extra_context(set_var)
+
     try:
-        cookiecutter(template, checkout, no_input)
+        cookiecutter(template, checkout, no_input, extra_context)
     except OutputDirExistsException as e:
         click.echo(e)
         sys.exit(1)

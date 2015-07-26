@@ -9,15 +9,30 @@ from cookiecutter import utils
 runner = CliRunner()
 
 
+def remove_dir(request, path):
+    """
+    Remove fake project directories created during the tests.
+    """
+    def fin_remove_fake_project_dir():
+        if os.path.isdir(path):
+            utils.rmtree(path)
+    request.addfinalizer(fin_remove_fake_project_dir)
+
+
 @pytest.fixture
 def remove_fake_project_dir(request):
     """
-    Remove the fake project directory created during the tests.
+    Removes the fake-project directory after running tests.
     """
-    def fin_remove_fake_project_dir():
-        if os.path.isdir('fake-project'):
-            utils.rmtree('fake-project')
-    request.addfinalizer(fin_remove_fake_project_dir)
+    remove_dir(request, 'fake-project')
+
+
+@pytest.fixture
+def remove_fake_project_2_dir(request):
+    """
+    Removes the fake-project-2 directory after running tests.
+    """
+    remove_dir(request, 'fake-project-2')
 
 
 @pytest.fixture
@@ -55,3 +70,13 @@ def test_cli_verbose():
     result = runner.invoke(main, ['tests/fake-repo-pre/', '--no-input', '-v'])
     assert result.exit_code == 0
     assert os.path.isdir('fake-project')
+
+
+@pytest.mark.usefixtures('remove_fake_project_2_dir')
+def test_cli_extra_context():
+    result = runner.invoke(main, [
+        'tests/fake-repo-pre/',
+        '--no-input',
+        '-s', 'repo_name=fake-project-2'])
+    assert result.exit_code == 0
+    assert os.path.isdir('fake-project-2')
